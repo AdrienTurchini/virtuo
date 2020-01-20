@@ -45,7 +45,8 @@ const rentals = [{
     'treasury': 0,
     'virtuo': 0
   }
-}, {
+}
+, {
   'id': 'bc16add4-9b1d-416c-b6e8-2d5103cade80',
   'driver': {
     'firstName': 'Redouane',
@@ -157,6 +158,84 @@ const actors = [{
     'amount': 0
   }]
 }];
+
+// STEP 1 : EURO-KILOMETERS
+for (var i = rentals.length - 1; i >= 0; i--) {
+	for (var j = cars.length - 1; j >= 0; j--) {
+		if(rentals[i].carId == cars[j].id)
+		{
+			var datePickUp = new Date(rentals[i].pickupDate);
+			var dateReturn = new Date(rentals[i].returnDate);
+			var length = (dateReturn - datePickUp)/(1000*60*60*24) + 1;
+			rentals[i].price = (cars[j].pricePerKm * rentals[i].distance) + (cars[j].pricePerDay * length);
+		}
+	}
+}
+
+// STEP 2 : Drive more, pay less
+for (var i = rentals.length - 1; i >= 0; i--) {
+	var datePickUp = new Date(rentals[i].pickupDate);
+	var dateReturn = new Date(rentals[i].returnDate);
+	var length = (dateReturn - datePickUp)/(1000*60*60*24) + 1;
+
+	if(length > 1 && length <= 4){
+		rentals[i].price *= 0.9;
+	} 
+	else if(length > 4 && length <= 10){
+		rentals[i].price *= 0.7;
+	}
+	else if(length > 10){
+		rentals[i].price *= 0.5;
+	}
+}
+
+// STEP 3 : Give me all your money
+for (var i = rentals.length - 1; i >= 0; i--) {
+	var datePickUp = new Date(rentals[i].pickupDate);
+	var dateReturn = new Date(rentals[i].returnDate);
+	var length = (dateReturn - datePickUp)/(1000*60*60*24) + 1;
+
+	var commission = 0.30 * rentals[i].price;
+
+	rentals[i].insurance = 0.50 * commission;
+	rentals[i].treasury = length;
+	rentals[i].virtuo = 0.50 * commission - length;
+}
+
+// STEP 4 : The famous deductible
+for (var i = rentals.length - 1; i >= 0; i--) {
+	if(rentals[i].options.deductibleReduction == true)
+	{
+		var datePickUp = new Date(rentals[i].pickupDate);
+		var dateReturn = new Date(rentals[i].returnDate);
+		var length = (dateReturn - datePickUp)/(1000*60*60*24) + 1;
+
+		var deductibleRed = 4*length;
+
+		// add the deductible reduction charge to the price
+		rentals[i].price += deductibleRed;
+		// add the deductible reduction option charge to the money virtuo takes
+		rentals[i].virtuo += deductibleRed;
+	}
+}
+
+// STEP 5 : Pay the actors
+for (var i = actors.length - 1; i >= 0; i--) {
+	for (var j = rentals.length - 1; j >= 0; j--) {
+		if(rentals[j].id == actors[i].rentalId){
+			actors[i].payment[0].amount = rentals[j].price; // the price now include the deductible reduction if taken 
+
+			var com = rentals[j].insurance + rentals[j].treasury + rentals[j].virtuo;
+			actors[i].payment[1].amount = rentals[j].price - com;
+
+			actors[i].payment[2].amount = rentals[j].insurance;
+
+			actors[i].payment[3].amount = rentals[j].treasury;
+
+			actors[i].payment[4].amount = rentals[j].virtuo;
+		}
+	}
+}
 
 console.log(cars);
 console.log(rentals);
